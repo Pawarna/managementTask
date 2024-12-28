@@ -4,6 +4,7 @@
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
             <file>file:/C:/Users/pawar/OneDrive/Dokumen/NetBeansProjects/ManagementTaskApp/src/com/managementtask/models/Task.java</file>
+            <file>file:/C:/Users/pawar/OneDrive/Dokumen/NetBeansProjects/ManagementTaskApp/src/com/managementtask/ui/Main.java</file>
             <file>file:/C:/Users/pawar/OneDrive/Dokumen/NetBeansProjects/ManagementTaskApp/src/com/managementtask/ui/MainForm.java</file>
             <file>file:/C:/Users/pawar/OneDrive/Dokumen/NetBeansProjects/ManagementTaskApp/src/com/managementtask/database/DatabaseConnection.java</file>
             <file>file:/C:/Users/pawar/OneDrive/Dokumen/NetBeansProjects/ManagementTaskApp/src/com/managementtask/services/TaskService.java</file>

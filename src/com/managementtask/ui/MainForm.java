@@ -1,7 +1,14 @@
 package com.managementtask.ui;
 
-public class MainForm extends javax.swing.JPanel {
+import com.managementtask.models.Task;
+import com.managementtask.services.TaskService;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import javax.swing.table.DefaultTableModel;
 
+public class MainForm extends javax.swing.JPanel {
+    TaskService taskService = new TaskService();
     /**
      * Creates new form MainForm
      */
@@ -37,9 +44,9 @@ public class MainForm extends javax.swing.JPanel {
         cmbTaskType = new javax.swing.JComboBox<>();
         cmbSubmissionMethod = new javax.swing.JComboBox<>();
         txtdueTime = new javax.swing.JFormattedTextField();
-        jButton1 = new javax.swing.JButton();
-        jButton2 = new javax.swing.JButton();
-        jButton3 = new javax.swing.JButton();
+        btnDelete = new javax.swing.JButton();
+        btnSave = new javax.swing.JButton();
+        btnAdd = new javax.swing.JButton();
 
         jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel1.setText("Sistem Management Tugas");
@@ -85,11 +92,16 @@ public class MainForm extends javax.swing.JPanel {
 
         txtdueTime.setFormatterFactory(new javax.swing.text.DefaultFormatterFactory(new javax.swing.text.DateFormatter(java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT))));
 
-        jButton1.setText("Delete");
+        btnDelete.setText("Delete");
 
-        jButton2.setText("Save");
+        btnSave.setText("Save");
 
-        jButton3.setText("Add");
+        btnAdd.setText("Add");
+        btnAdd.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnAddActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
@@ -103,11 +115,11 @@ public class MainForm extends javax.swing.JPanel {
                 .addGap(40, 40, 40)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                     .addGroup(layout.createSequentialGroup()
-                        .addComponent(jButton3)
+                        .addComponent(btnAdd)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(jButton2)
+                        .addComponent(btnSave)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(jButton1))
+                        .addComponent(btnDelete))
                     .addGroup(layout.createSequentialGroup()
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(jLabel2)
@@ -173,24 +185,113 @@ public class MainForm extends javax.swing.JPanel {
                             .addComponent(cmbSubmissionMethod, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 12, Short.MAX_VALUE)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(jButton1)
-                            .addComponent(jButton2)
-                            .addComponent(jButton3)))
+                            .addComponent(btnDelete)
+                            .addComponent(btnSave)
+                            .addComponent(btnAdd)))
                     .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE))
                 .addGap(41, 41, 41))
         );
     }// </editor-fold>//GEN-END:initComponents
 
+    private void btnAddActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnAddActionPerformed
+        try{
+            String subject = cmbSubject.getSelectedItem().toString();
+            String taskTitle = txtTaskTitle.getText();
+            String description = txtDescription.getText();
+            LocalDate taskDate = dateTaskChooser.getSelectedDate().getTime()
+                                             .toInstant()
+                                             .atZone(ZoneId.systemDefault())
+                                             .toLocalDate();;
+            LocalDate dueDate = dueDateChooser.getSelectedDate().getTime()
+                                             .toInstant()
+                                             .atZone(ZoneId.systemDefault())
+                                             .toLocalDate();
+            LocalDateTime dueDateTime = LocalDateTime.of(
+                                             dueDate, 
+                                             LocalTime.parse(txtdueTime.getText(), DateTimeFormatter.ofPattern("HH:mm")));
+            String taskType = cmbTaskType.getSelectedItem().toString();
+            String submissionMethod = cmbSubmissionMethod.getSelectedItem().toString();
+            
+            Task task = new Task(
+                            subject,
+                            taskTitle,
+                            description,
+                            taskDate,
+                            dueDateTime,
+                            taskType,
+                            submissionMethod);
+            taskService.addTask(task);
+            loadTask();
+        }catch(Exception e){
+            
+        }
+    }//GEN-LAST:event_btnAddActionPerformed
+
+    private void loadTask(){
+        List<Task> tasks = taskService.getAllTasks();
+        DefaultTableModel model = new DefaultTableModel();
+        model.addColumn("No");
+        model.addColumn("Mata Kuliah");
+        model.addColumn("Deskripsi");
+        model.addColumn("Tanggal Penguasan");
+        model.addColumn("Deadline");
+        model.addColumn("Tipe Tugas");
+        model.addColumn("Metode Pengumpulan");
+        
+        for(Task task: tasks){
+            model.addRow(new Object[]{
+                    task.getId(),
+                    task.getSubject(),
+                    task.getTaskTitle(),
+                    task.getDescription(),
+                    task.getTaskDate(),
+                    task.getDueDate(),
+                    task.getTaskType(),
+                    task.getSubmissionMethod()});
+        }
+        tblResult.setModel(model);
+    }
+    public static void main(String args[]) {
+        /* Set the Nimbus look and feel */
+        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
+        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
+         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
+         */
+        try {
+            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
+                if ("Nimbus".equals(info.getName())) {
+                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
+                    break;
+                }
+            }
+        } catch (ClassNotFoundException ex) {
+            java.util.logging.Logger.getLogger(MainForm.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        } catch (InstantiationException ex) {
+            java.util.logging.Logger.getLogger(MainForm.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        } catch (IllegalAccessException ex) {
+            java.util.logging.Logger.getLogger(MainForm.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
+            java.util.logging.Logger.getLogger(MainForm.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        }
+        //</editor-fold>
+
+        /* Create and display the form */
+        java.awt.EventQueue.invokeLater(new Runnable() {
+            public void run() {
+                new MainForm().setVisible(true);
+            }
+        });
+    }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton btnAdd;
+    private javax.swing.JButton btnDelete;
+    private javax.swing.JButton btnSave;
     private javax.swing.JComboBox<String> cmbSubject;
     private javax.swing.JComboBox<String> cmbSubmissionMethod;
     private javax.swing.JComboBox<String> cmbTaskType;
     private datechooser.beans.DateChooserCombo dateTaskChooser;
     private datechooser.beans.DateChooserCombo dueDateChooser;
-    private javax.swing.JButton jButton1;
-    private javax.swing.JButton jButton2;
-    private javax.swing.JButton jButton3;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;

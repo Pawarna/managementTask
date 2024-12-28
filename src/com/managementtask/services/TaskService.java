@@ -33,7 +33,7 @@ public class TaskService {
         }
     }
 
-    public List<Task> getAllTask(){
+    public List<Task> getAllTasks(){
         String sql = "SELECT * FROM Task";
         List<Task> tasks = new ArrayList<>();
 
