@@ -2,9 +2,7 @@ package com.managementtask.ui;
 
 import com.managementtask.models.Task;
 import com.managementtask.services.TaskService;
-import com.managementtask.utils.TaskValidation;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import com.managementtask.utils.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.*;
@@ -12,6 +10,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.*;
 import javax.swing.table.TableRowSorter;
@@ -64,13 +63,12 @@ public class MainForm extends javax.swing.JFrame {
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Management Task");
-        setMaximumSize(new java.awt.Dimension(23, 23));
 
         jLabel8.setText("Metode Pengumpulan");
 
         cmbSubject.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Praktikum Pemrograman Berorientasi Objek", "Pemrograman Berorientasi Objek", "Rekayasa Perangkat Lunak", "Statistika", "Praktikum Statistika", "Interaksi Manusia dan Komputer", "Jaringan dan Komputer", "Praktikum Jaringan dan Komputer", "Kecerdasan Buatan", "Agama", "Bahasa Indonesia" }));
 
-        btnDelete.setText("Delete");
+        btnDelete.setText("Hapus");
         btnDelete.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 btnDeleteActionPerformed(evt);
@@ -97,7 +95,7 @@ public class MainForm extends javax.swing.JFrame {
             }
         });
 
-        btnAdd.setText("Add");
+        btnAdd.setText("Tambah");
         btnAdd.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 btnAddActionPerformed(evt);
@@ -288,49 +286,43 @@ public class MainForm extends javax.swing.JFrame {
     }//GEN-LAST:event_btnAddActionPerformed
 
     private void btnDeleteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnDeleteActionPerformed
-        int[] selectedRows = tblResult.getSelectedRows();
-
-        if (selectedRows.length > 0) {
-            int confirm = JOptionPane.showConfirmDialog(this,
-                    "Are you sure you want to delete the selected task(s)?",
-                    "Confirm Delete",
-                    JOptionPane.YES_NO_OPTION);
-
-            if (confirm == JOptionPane.YES_OPTION) {
-                try {
-                    for (int row : selectedRows) {
-                        int taskId = (int) tblResult.getModel().getValueAt(row, 8);
-                        taskService.deleteTask(taskId);
-                    }
-                    loadTask();
-                    JOptionPane.showMessageDialog(this, "Selected task(s) have been deleted.");
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    JOptionPane.showMessageDialog(this, "An error occurred while deleting the task(s).", "Error", JOptionPane.ERROR_MESSAGE);
-                }
-            }
-        } else {
-            JOptionPane.showMessageDialog(this, "Please select one or more tasks to delete.", "No Task Selected", JOptionPane.WARNING_MESSAGE);
-        }
+        if (isEditMode) {
+        // Keluar dari mode edit
+        exitEditMode();
+    } else {
+        // Hapus tugas
+        deleteSelectedTasks();
+    }
     }//GEN-LAST:event_btnDeleteActionPerformed
 
     private void btnUpdateActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnUpdateActionPerformed
         if (isEditMode) {
         // Simpan perubahan
+        saveTaskChanges();
+        } else {
+            // Masuk ke mode edit
+            enterEditMode();
+        }      
+    }//GEN-LAST:event_btnUpdateActionPerformed
+
+    private void saveTaskChanges() {
         try {
             String HH = String.format("%02d", spnrJam.getValue());
             String mm = String.format("%02d", spnrMenit.getValue());
             String dueTime = HH + ":" + mm;
+
             int selectedRow = tblResult.getSelectedRow();
             if (selectedRow == -1) {
                 JOptionPane.showMessageDialog(this, "Pilih tugas yang ingin diedit!");
                 return;
             }
+
             int taskId = (int) tblResult.getModel().getValueAt(selectedRow, 8);
 
             String subject = cmbSubject.getSelectedItem().toString();
             String taskTitle = txtTaskTitle.getText();
             String description = txtDescription.getText();
+
             LocalDate taskDate = dateTaskChooser.getSelectedDate().getTime()
                                                 .toInstant()
                                                 .atZone(ZoneId.systemDefault())
@@ -341,7 +333,9 @@ public class MainForm extends javax.swing.JFrame {
                                               .toLocalDate();
             LocalDateTime dueDateTime = LocalDateTime.of(
                 dueDate,
-                LocalTime.parse(dueTime, DateTimeFormatter.ofPattern("HH:mm")));
+                LocalTime.parse(dueTime, DateTimeFormatter.ofPattern("HH:mm"))
+            );
+
             String taskType = cmbTaskType.getSelectedItem().toString();
             String submissionMethod = cmbSubmissionMethod.getSelectedItem().toString();
 
@@ -352,42 +346,83 @@ public class MainForm extends javax.swing.JFrame {
                 taskDate,
                 dueDateTime,
                 taskType,
-                submissionMethod);
+                submissionMethod
+            );
 
+            // Validasi tugas
             if (new TaskValidation().isNotValid(task)) {
                 JOptionPane.showMessageDialog(this, "Semua bidang harus diisi!");
                 return;
             }
 
+            // Perbarui tugas
             taskService.updateTask(taskId, task);
-            loadTask();
+            loadTask(); // Reload data tabel
             JOptionPane.showMessageDialog(this, "Tugas berhasil diperbarui!");
+
+            // Reset form dan keluar dari mode edit
             clearField();
+            exitEditMode();
         } catch (Exception e) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Terjadi kesalahan saat menyimpan tugas.");
+            JOptionPane.showMessageDialog(this, "Terjadi kesalahan saat menyimpan tugas.", "Error", JOptionPane.ERROR_MESSAGE);
         }
-        isEditMode = false;
-        btnUpdate.setText("Edit");
-        btnAdd.setEnabled(true);
-        btnDelete.setEnabled(true);
-    } else {
-        // Masuk ke mode edit
+    }
+
+    private void enterEditMode() {
         int selectedRow = tblResult.getSelectedRow();
         if (selectedRow != -1) {
             int taskId = (int) tblResult.getModel().getValueAt(selectedRow, 8);
-            loadTaskToField(taskId);
+            loadTaskToField(taskId); // Muat data ke field input
             isEditMode = true;
             btnUpdate.setText("Simpan");
-            btnAdd.setEnabled(false); 
-            btnDelete.setEnabled(false); 
+            btnAdd.setEnabled(false);
+            btnDelete.setText("Batal");
         } else {
             JOptionPane.showMessageDialog(this, "Pilih tugas yang ingin diedit!");
         }
-    }        
-    }//GEN-LAST:event_btnUpdateActionPerformed
+    }
 
-    private void loadTask(){
+
+ 
+    private void deleteSelectedTasks() {
+        int[] selectedRows = tblResult.getSelectedRows();
+
+        if (selectedRows.length > 0) {
+            int confirm = JOptionPane.showConfirmDialog(this,
+                    "Apa kamu yakin ingin menghapus tugas yang dipilih?",
+                    "Hapus Tugas",
+                    JOptionPane.YES_NO_OPTION);
+
+            if (confirm == JOptionPane.YES_OPTION) {
+                try {
+                    for (int row : selectedRows) {
+                        int taskId = (int) tblResult.getModel().getValueAt(row, 8);
+                        taskService.deleteTask(taskId);
+                    }
+                    loadTask(); // Muat ulang data tabel
+                    JOptionPane.showMessageDialog(this, "Tugas yang dipilih telah dihapus.");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(this, "Error saat melakukan penghapusan tugas.", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        } else {
+            JOptionPane.showMessageDialog(this, "Tolong pilih 1 atau lebih tugas untuk dihapus!", "Tidak ada tugas yang dipilih", JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
+    private void exitEditMode() {
+        isEditMode = false;
+        btnUpdate.setText("Edit");
+        btnDelete.setText("Hapus");
+        btnAdd.setEnabled(true);
+
+        // Bersihkan field input
+        clearField();
+    }
+
+    public void loadTask(){
         List<Task> tasks = taskService.getAllTasks();
         DefaultTableModel model = new DefaultTableModel();
         model.addColumn("No");
@@ -407,8 +442,8 @@ public class MainForm extends javax.swing.JFrame {
                     task.getSubject(),
                     task.getTaskTitle(),
                     task.getDescription(),
-                    task.getTaskDate(),
-                    task.getDueDate(),
+                    task.getTaskDate().format(DateTimeFormatter.ofPattern("d MMMM yyyy", new Locale("id", "ID"))),
+                    task.getDueDate().format(DateTimeFormatter.ofPattern("d MMMM yyyy HH:mm", new Locale("id", "ID"))),
                     task.getTaskType(),
                     task.getSubmissionMethod(),
                     task.getId()
@@ -416,10 +451,27 @@ public class MainForm extends javax.swing.JFrame {
         }
         tblResult.setModel(model);
         
-        tblResult.getColumnModel().getColumn(0).setMaxWidth(20);
         tblResult.getColumnModel().getColumn(8).setMinWidth(0);
         tblResult.getColumnModel().getColumn(8).setMaxWidth(0);
         tblResult.getColumnModel().getColumn(8).setWidth(0);
+        
+        tblResult.getColumnModel().getColumn(0).setMaxWidth(30);
+        
+        tblResult.setRowHeight(100);
+        
+         tblResult.getColumnModel().getColumn(0).setPreferredWidth(50);  // No
+        tblResult.getColumnModel().getColumn(1).setPreferredWidth(200); // Mata Kuliah
+        tblResult.getColumnModel().getColumn(2).setPreferredWidth(200); // Judul Tugas
+        tblResult.getColumnModel().getColumn(3).setPreferredWidth(300); // Deskripsi
+        tblResult.getColumnModel().getColumn(4).setPreferredWidth(120); // Tanggal Penugasan
+        tblResult.getColumnModel().getColumn(5).setPreferredWidth(150); // Deadline
+        tblResult.getColumnModel().getColumn(6).setPreferredWidth(120); // Tipe Tugas
+        tblResult.getColumnModel().getColumn(7).setPreferredWidth(150); // Metode Pengumpulan
+
+        // Custom renderer untuk text wrapping di kolom Deskripsi
+        tblResult.getColumnModel().getColumn(3).setCellRenderer(new TextAreaRenderer());
+        
+        tblResult.getColumnModel().getColumn(5).setCellRenderer(new DeadlineTableCellRenderer());
         
         TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(model);
         tblResult.setRowSorter(sorter);
