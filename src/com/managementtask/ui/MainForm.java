@@ -7,6 +7,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -17,6 +18,8 @@ import javax.swing.table.TableRowSorter;
 
 public class MainForm extends javax.swing.JFrame {
     TaskService taskService = new TaskService();
+    SendNotification sendNotification = new SendNotification();
+    TranslateTaskWithGemini gemini = new TranslateTaskWithGemini();
     private boolean isEditMode = false;
     /**
      * Creates new form Test
@@ -126,7 +129,7 @@ public class MainForm extends javax.swing.JFrame {
 
         jLabel7.setText("Jenis Tugas");
 
-        cmbSubmissionMethod.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Sipedar", "Google Form", "HardFile", " " }));
+        cmbSubmissionMethod.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Sipedar", "Google Form", "HardFile", "Presentasi" }));
 
         spnrJam.setRequestFocusEnabled(false);
 
@@ -278,6 +281,8 @@ public class MainForm extends javax.swing.JFrame {
                 return;
             }
             taskService.addTask(task);
+            String notif = gemini.result(task);
+            sendNotification.toWhatsapp(notif);
             loadTask();
             clearField();
         }catch(Exception e){
@@ -424,6 +429,37 @@ public class MainForm extends javax.swing.JFrame {
 
     public void loadTask(){
         List<Task> tasks = taskService.getAllTasks();
+        // Urutkan tugas berdasarkan deadline dan durasi
+        tasks.sort((task1, task2) -> {
+            // Bandingkan berdasarkan deadline
+            int deadlineComparison = task1.getDueDate().compareTo(task2.getDueDate());
+            if (deadlineComparison == 0) {
+                // Jika deadline sama, bandingkan berdasarkan durasi penyelesaian
+                long duration1 = Duration.between(task1.getTaskDate().atStartOfDay(), task1.getDueDate()).toHours();
+                long duration2 = Duration.between(task2.getTaskDate().atStartOfDay(), task2.getDueDate()).toHours();
+                return Long.compare(duration1, duration2);
+            }
+            return deadlineComparison;
+        });
+
+        
+        LocalDateTime now = LocalDateTime.now();
+        List<Task> overdueTasks = new ArrayList<>();
+        List<Task> upcomingTasks = new ArrayList<>();
+
+        for (Task task : tasks) {
+            if (task.getDueDate().isBefore(now)) {
+                overdueTasks.add(task);
+            } else {
+                upcomingTasks.add(task);
+            }
+        }
+
+        // Gabungkan tugas yang belum overdue dengan tugas yang sudah overdue
+        List<Task> sortedTasks = new ArrayList<>();
+        sortedTasks.addAll(upcomingTasks);
+        sortedTasks.addAll(overdueTasks);
+    
         DefaultTableModel model = new DefaultTableModel();
         model.addColumn("No");
         model.addColumn("Mata Kuliah");
@@ -436,7 +472,7 @@ public class MainForm extends javax.swing.JFrame {
         model.addColumn("ID");
         
         int number = 1;
-        for(Task task: tasks){
+        for(Task task: sortedTasks){
             model.addRow(new Object[]{
                     number++,
                     task.getSubject(),
@@ -457,9 +493,9 @@ public class MainForm extends javax.swing.JFrame {
         
         tblResult.getColumnModel().getColumn(0).setMaxWidth(30);
         
-        tblResult.setRowHeight(100);
+        tblResult.setRowHeight(200);
         
-         tblResult.getColumnModel().getColumn(0).setPreferredWidth(50);  // No
+        tblResult.getColumnModel().getColumn(0).setPreferredWidth(50);  // No
         tblResult.getColumnModel().getColumn(1).setPreferredWidth(200); // Mata Kuliah
         tblResult.getColumnModel().getColumn(2).setPreferredWidth(200); // Judul Tugas
         tblResult.getColumnModel().getColumn(3).setPreferredWidth(300); // Deskripsi

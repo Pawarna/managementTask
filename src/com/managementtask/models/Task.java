@@ -13,7 +13,7 @@ public class Task {
     private String submissionMethod;
     
     public Task(String subject, String taskTitle, String description, LocalDate taskDate, LocalDateTime dueDate, String taskType, String submissionMethod){
-       this. subject = subject;
+       this.subject = subject;
        this.taskTitle = taskTitle;
        this.description = description;
        this.taskDate = taskDate;
