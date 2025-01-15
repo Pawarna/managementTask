@@ -3,6 +3,7 @@ package com.managementtask.ui;
 import javax.swing.*;
 import com.formdev.flatlaf.*;
 import com.formdev.flatlaf.themes.*;
+import com.managementtask.utils.SessionManager;
 
 public class Main {
     public static void main(String[] args) {
@@ -14,12 +15,19 @@ public class Main {
         }
 
         SwingUtilities.invokeLater(() -> {
-            MainForm app = new MainForm();
-            app.setExtendedState(JFrame.MAXIMIZED_BOTH);
-            app.setVisible(true);
+            // Cek apakah token valid dari database atau properties
+            String email = SessionManager.getEmailFromSession();
 
-            // Tambahkan menu bar dengan fitur tema dan refresh tabel
-            setupMenuBar(app);
+            if (email != null && SessionManager.isSessionValid(email)) {
+                // Jika sesi valid, langsung buka MainForm
+                new MainForm(email).setVisible(true);
+            } else {
+                // Jika sesi tidak valid, buka halaman login
+                Register app = new Register();
+                app.setExtendedState(JFrame.MAXIMIZED_BOTH);
+                app.setVisible(true);
+                setupMenuBar(app); // Tambahkan menu bar jika perlu
+            }
         });
     }
 
@@ -39,7 +47,6 @@ public class Main {
         macLightTheme.addActionListener(e -> switchLookAndFeel(new FlatMacLightLaf(), app));
         intellijDark.addActionListener(e -> switchLookAndFeel(new FlatDarculaLaf(), app));
         intellijLight.addActionListener(e -> switchLookAndFeel(new FlatLightLaf(), app));
-        
 
         // Tambahkan item ke menu Tema
         themeMenu.add(macDarkTheme);

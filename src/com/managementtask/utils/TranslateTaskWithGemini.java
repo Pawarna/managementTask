@@ -34,7 +34,7 @@ public class TranslateTaskWithGemini {
             String body = objectMapper.writeValueAsString(bodyNode);
             System.out.println("Request Body: " + body);
 
-            String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=";
+            String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyAD-zmyqK8zf5qtiShQZ8Z52M0Rquy13fA";
 
             // Mengirimkan request POST
             String response = Fetch.post(url,

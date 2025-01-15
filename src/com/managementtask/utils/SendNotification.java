@@ -4,10 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 
 public class SendNotification {
-    public void toWhatsapp(String text) {
+    public void toWhatsapp(String text, String recipient) {
         String apiUrl = "http://localhost:4729/send-message";
         //        String recipient = "120363169499365755@g.us";
-        String recipient = "6285747880042";
 
         // Membuat body JSON menggunakan ObjectMapper
         Map<String, String> payload = Map.of(
